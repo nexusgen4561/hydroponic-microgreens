@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import React, { useState, useEffect } from 'react';
 import { db } from '../../config';
 import { ref, onValue } from 'firebase/database';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function DataLogScreen({ navigation }) {
     const [readingsData, setReadingsData] = useState([]);
@@ -32,6 +33,9 @@ export default function DataLogScreen({ navigation }) {
     return (
         <View style={styles.container}>
             <View style={styles.headerContainer}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <Ionicons name="ios-arrow-back" size={24} color="black" />
+                </TouchableOpacity>
                 <Text style={styles.header}>Sensor Data Log</Text>
             </View>
 
@@ -59,14 +63,15 @@ export default function DataLogScreen({ navigation }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff', // Use your desired background color here
+        backgroundColor: '#fff',
         marginTop: 28,
     },
     header: {
         fontWeight: 'bold',
         fontSize: 20,
-        marginLeft: 20,
-        color: 'black', // Font color set to white
+        color: 'black',
+        marginLeft: 75, // Center the header text
+        flex: 1, // Allow the header to expand and take the available space
     },
     listContainer: {
         flex: 1,
@@ -82,22 +87,23 @@ const styles = StyleSheet.create({
     timestamp: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: 'black', // Font color set to white
+        color: 'black',
     },
     details: {
         marginTop: 10,
     },
     detailText: {
-        color: 'black', // Font color set to white
+        color: 'black',
     },
     backButton: {
-        marginLeft: 24,
-        maxWidth: 20,
-        color: 'black', // Font color set to white
+        maxWidth: 50, // Adjust the width as needed
+        alignItems: 'flex-start', // Align the button to the start of the header
+        marginLeft: 20
     },
     headerContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center', // Center content horizontally
         marginTop: 40,
     },
 });
