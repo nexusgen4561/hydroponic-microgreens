@@ -1,12 +1,14 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ScrollView } from 'react-native';
 import { db } from '../../config';
 import { ref, onValue } from 'firebase/database';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function DataLogScreen({ navigation }) {
     const [readingsData, setReadingsData] = useState([]);
-    const [expandedItem, setExpandedItem] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(10);
+    const [expandedItems, setExpandedItems] = useState([]);
 
     useEffect(() => {
         const starCountRef = ref(db, 'readings');
@@ -22,11 +24,22 @@ export default function DataLogScreen({ navigation }) {
         });
     }, []);
 
-    const toggleExpand = (item) => {
-        if (expandedItem === item.id) {
-            setExpandedItem(null);
+    // Calculate the range of items to display for the current page
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentItems = readingsData.slice(indexOfFirstItem, indexOfLastItem);
+
+    // Function to handle page change
+    const onPageChange = (page) => {
+        setCurrentPage(page);
+    };
+
+    // Function to toggle item expansion
+    const toggleExpand = (itemId) => {
+        if (expandedItems.includes(itemId)) {
+            setExpandedItems(expandedItems.filter((id) => id !== itemId));
         } else {
-            setExpandedItem(item.id);
+            setExpandedItems([...expandedItems, itemId]);
         }
     };
 
@@ -39,20 +52,34 @@ export default function DataLogScreen({ navigation }) {
                 <Text style={styles.header}>Sensor Data Log</Text>
             </View>
 
-            <View style={styles.listContainer}>
-                {readingsData.map((item, index) => (
-                    <TouchableOpacity key={item.id} onPress={() => toggleExpand(item)}>
-                        <View style={styles.listItem}>
-                            <Text style={styles.timestamp}>{item.Timestamp}</Text>
-                            {expandedItem === item.id && (
-                                <View style={styles.details}>
-                                    <Text style={styles.detailText}>Status: {item.Status}</Text>
-                                    <Text style={styles.detailText}>Temperature: {item.Temperature}</Text>
-                                    <Text style={styles.detailText}>pH Value: {item.pH_Value}</Text>
-                                    <Text style={styles.detailText}>tds Value: {item.tds_Value}</Text>
-                                </View>
-                            )}
-                        </View>
+            <ScrollView>
+                <View style={styles.listContainer}>
+                    {currentItems.map((item, index) => (
+                        <TouchableOpacity key={item.id} onPress={() => toggleExpand(item.id)}>
+                            <View style={styles.listItem}>
+                                <Text style={styles.timestamp}>{item.Timestamp}</Text>
+                                {expandedItems.includes(item.id) && (
+                                    <View style={styles.details}>
+                                        <Text style={styles.detailText}>Status: {item.Status}</Text>
+                                        <Text style={styles.detailText}>Temperature: {item.Temperature}</Text>
+                                        <Text style={styles.detailText}>pH Value: {item.pH_Value}</Text>
+                                        <Text style={styles.detailText}>tds Value: {item.tds_Value}</Text>
+                                    </View>
+                                )}
+                            </View>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            </ScrollView>
+
+            <View style={styles.paginationContainer}>
+                {Array.from({ length: Math.ceil(readingsData.length / itemsPerPage) }, (_, i) => (
+                    <TouchableOpacity
+                        key={i}
+                        onPress={() => onPageChange(i + 1)}
+                        style={[styles.paginationButton, currentPage === i + 1 && styles.selectedPage]}
+                    >
+                        <Text style={styles.pageNumber}>{i + 1}</Text>
                     </TouchableOpacity>
                 ))}
             </View>
@@ -70,8 +97,8 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 20,
         color: 'black',
-        marginLeft: 75, // Center the header text
-        flex: 1, // Allow the header to expand and take the available space
+        marginLeft: 75,
+        flex: 1,
     },
     listContainer: {
         flex: 1,
@@ -96,14 +123,32 @@ const styles = StyleSheet.create({
         color: 'black',
     },
     backButton: {
-        maxWidth: 50, // Adjust the width as needed
-        alignItems: 'flex-start', // Align the button to the start of the header
-        marginLeft: 20
+        maxWidth: 50,
+        alignItems: 'flex-start',
+        marginLeft: 20,
     },
     headerContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center', // Center content horizontally
-        marginTop: 40,
+        justifyContent: 'center',
+        marginTop: 30,
+    },
+    paginationContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        marginTop: 20,
+    },
+    paginationButton: {
+        padding: 5,
+        marginRight: 5,
+        backgroundColor: 'lightgray',
+        borderRadius: 5,
+    },
+    selectedPage: {
+        backgroundColor: 'gray',
+    },
+    pageNumber: {
+        color: 'black',
+        fontWeight: 'bold',
     },
 });

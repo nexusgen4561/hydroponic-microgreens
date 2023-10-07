@@ -1,7 +1,34 @@
 import * as React from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
+import { db } from '../../config';
+import { ref, off, orderByKey, limitToLast, onValue, query } from 'firebase/database';
+import WebView from 'react-native-webview';
 
 export default function HomeScreen({ navigation }) {
+    const basilYield = 944;
+    const parsleyYield = 1043;
+
+    const [latestDatabaseValue, setLatestDatabaseValue] = useState(null);
+
+    useEffect(() => {
+        const readingsRef = ref(db, 'readings');
+        const latestReadingQuery = query(readingsRef, orderByKey(), limitToLast(1));
+
+        const listener = onValue(latestReadingQuery, (snapshot) => {
+            const data = snapshot.val();
+            const latestReadingKey = Object.keys(data)[0];
+            const latestReading = data[latestReadingKey];
+
+            setLatestDatabaseValue(latestReading);
+        });
+
+        return () => {
+            off(latestReadingQuery, 'value', listener);
+        };
+    }, []);
+
+
     return (
         <View>
             {/* Header view */}
@@ -14,7 +41,6 @@ export default function HomeScreen({ navigation }) {
 
                 {/* Text on the right */}
                 <Text
-                    onPress={() => alert('This is the "Home" screen.')}
                     style={styles.headerText}>
                     Hydroponic IoT
                 </Text>
@@ -25,21 +51,33 @@ export default function HomeScreen({ navigation }) {
                 {/* Card 1 */}
                 <View style={styles.readingsCard}>
                     <Text style={styles.cardText}>Status</Text>
+                    <Text style={styles.cardValue}>
+                        {latestDatabaseValue && latestDatabaseValue.Status}
+                    </Text>
                 </View>
 
                 {/* Card 2 */}
                 <View style={styles.readingsCard}>
                     <Text style={styles.cardText}>Temperature</Text>
+                    <Text style={styles.cardValue}>
+                        {latestDatabaseValue && latestDatabaseValue.Temperature}
+                    </Text>
                 </View>
 
                 {/* Card 3 */}
                 <View style={styles.readingsCard}>
                     <Text style={styles.cardText}>pH Value</Text>
+                    <Text style={styles.cardValue}>
+                        {latestDatabaseValue && latestDatabaseValue.pH_Value}
+                    </Text>
                 </View>
 
                 {/* Card 4 */}
                 <View style={styles.readingsCard}>
                     <Text style={styles.cardText}>TDS Value</Text>
+                    <Text style={styles.cardValue}>
+                        {latestDatabaseValue && latestDatabaseValue.tds_Value}
+                    </Text>
                 </View>
             </View>
 
@@ -47,21 +85,25 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.liveFeedHeader}>Live Feed</Text>
             <View style={styles.liveFeedContainer}>
                 <View style={styles.liveFeedCard}>
-                    <Text style={styles.cardText}>Sample Text</Text>
+                    <WebView
+                        source={{ uri: 'https://c7dd02f5de68.ngrok.app' }} // Replace with your live feed URL
+                        style={styles.liveFeed}
+                    />
                 </View>
             </View>
-
 
             {/* Yield Cards */}
             <Text style={styles.yieldHeader}>Yield Count</Text>
             <View style={styles.yieldCardContainer}>
                 <View style={styles.yieldCard}>
                     <Text style={styles.cardText}>Basil</Text>
+                    <Text style={styles.yieldCount}>{basilYield} yields</Text>
                 </View>
 
                 {/* Card 2 */}
                 <View style={styles.yieldCard}>
                     <Text style={styles.cardText}>Parsley</Text>
+                    <Text style={styles.yieldCount}>{parsleyYield} yields</Text>
                 </View>
             </View>
         </View>
@@ -72,12 +114,12 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 50,
+        marginTop: 34,
         marginLeft: 24,
     },
     logo: {
-        width: 60,
-        height: 60,
+        width: 80,
+        height: 80,
         marginRight: 10,
     },
     headerText: {
@@ -89,7 +131,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'space-between',
-        marginTop: 40,
+        marginTop: 4,
         marginHorizontal: 24,
     },
     yieldCardContainer: {
@@ -106,7 +148,7 @@ const styles = StyleSheet.create({
     },
     readingsCard: {
         width: '48%', // To create two columns
-        height: '64%',
+        height: '70%',
         backgroundColor: '#fff',
         borderRadius: 8,
         padding: 16,
@@ -124,29 +166,33 @@ const styles = StyleSheet.create({
     },
     liveFeedCard: {
         width: '100%', // To create two columns
-        height: '320%',
+        height: '600%',
         backgroundColor: '#fff',
         borderRadius: 8,
-        padding: 16,
+        padding: 8,
         marginBottom: 16,
         elevation: 2, // For shadow
     },
     cardText: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: 'bold',
     },
     yieldHeader: {
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: 'bold',
         marginLeft: 24,
-        marginTop: 150, // Adjust spacing from the top
-        marginBottom: 10
+        marginTop: 160, // Adjust spacing from the top
+        marginBottom: 10,
     },
     liveFeedHeader: {
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: 'bold',
         marginLeft: 24,
-        marginTop: 70, // Adjust spacing from the top
-        marginBottom: 10
+        marginTop: 100, // Adjust spacing from the top
+        marginBottom: 10,
+    },
+    liveFeedVideo: {
+        width: '100%',
+        height: 300, // Set the desired height for your video
     },
 });
