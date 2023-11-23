@@ -51,7 +51,6 @@ const MainContainer = () => {
                 <Tab.Screen name={homeName} component={HomeScreen} options={{ headerShown: false }} />
                 <Tab.Screen name={dataLogName} component={DataLogScreen} options={{ headerShown: false }} />
                 <Tab.Screen name={imageProcName} component={ImageProcScreen} options={{ headerShown: false }} />
-                <Tab.Screen name={profileName} component={ProfileScreen} options={{ headerShown: false }} />
 
             </Tab.Navigator>
         </NavigationContainer>

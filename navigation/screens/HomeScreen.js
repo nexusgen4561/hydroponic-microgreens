@@ -1,26 +1,28 @@
 import * as React from 'react';
 import { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { View, Text, ImageBackground, StyleSheet, Switch } from 'react-native';
 import { db } from '../../config';
-import { ref, off, orderByKey, limitToLast, onValue, query } from 'firebase/database';
+import { ref, off, orderByKey, limitToLast, onValue, set, query } from 'firebase/database';
 import WebView from 'react-native-webview';
 
 export default function HomeScreen({ navigation }) {
-    const basilYield = 944;
-    const parsleyYield = 1043;
+    const basilYield = 299;
+    const parsleyYield = 119;
 
     const [latestDatabaseValue, setLatestDatabaseValue] = useState(null);
+    const [ledStatus, setLedStatus] = useState(true);
 
     useEffect(() => {
-        const readingsRef = ref(db, 'readings');
+        const readingsRef = ref(db, 'readings5');
         const latestReadingQuery = query(readingsRef, orderByKey(), limitToLast(1));
 
         const listener = onValue(latestReadingQuery, (snapshot) => {
             const data = snapshot.val();
-            const latestReadingKey = Object.keys(data)[0];
-            const latestReading = data[latestReadingKey];
-
-            setLatestDatabaseValue(latestReading);
+            if (data) {
+                const latestReadingKey = Object.keys(data)[0];
+                const latestReading = data[latestReadingKey];
+                setLatestDatabaseValue(latestReading);
+            }
         });
 
         return () => {
@@ -28,20 +30,39 @@ export default function HomeScreen({ navigation }) {
         };
     }, []);
 
+    useEffect(() => {
+        // Create a reference to the "led_control" node in Firebase
+        const ledControlRef = ref(db, 'led_control');
+
+        // Listen for changes in the "led_control" value in Firebase
+        onValue(ledControlRef, (snapshot) => {
+            const newValue = snapshot.val();
+            setLedStatus(newValue);
+        });
+
+        // Clean up the listener when the component unmounts
+        return () => {
+            off(ledControlRef);
+        };
+    }, []);
+
+    const toggleLedStatus = () => {
+        const newStatus = !ledStatus;
+        set(ref(db, 'led_control'), newStatus);
+    };
 
     return (
-        <View>
+        <View style={styles.container}>
             {/* Header view */}
             <View style={styles.header}>
                 {/* Logo on the left */}
-                <Image
-                    source={require('../../assets/hydroponic-icon.png')} // Replace with the actual path to your logo
+                <ImageBackground
+                    source={require('../../assets/hydroponic-icon-beige.png')}
                     style={styles.logo}
                 />
 
                 {/* Text on the right */}
-                <Text
-                    style={styles.headerText}>
+                <Text style={styles.headerText}>
                     Hydroponic IoT
                 </Text>
             </View>
@@ -81,29 +102,26 @@ export default function HomeScreen({ navigation }) {
                 </View>
             </View>
 
+            {/* LED Control */}
+            <View style={styles.ledControlContainer}>
+                <Text style={styles.ledControlLabel}>LED Control</Text>
+                <Switch value={ledStatus} onValueChange={toggleLedStatus} />
+            </View>
+
             {/* Live Feed Card */}
             <Text style={styles.liveFeedHeader}>Live Feed</Text>
             <View style={styles.liveFeedContainer}>
+                {/* <View style={styles.liveFeedCard}>
+                    <ImageBackground
+                        source={require('../../assets/first_trial.jpg')}
+                        style={styles.liveFeedImage}
+                    />
+                </View> */}
                 <View style={styles.liveFeedCard}>
                     <WebView
-                        source={{ uri: 'https://c7dd02f5de68.ngrok.app' }} // Replace with your live feed URL
+                        source={{ uri: 'https://hydroponic.ngrok.app' }}
                         style={styles.liveFeed}
                     />
-                </View>
-            </View>
-
-            {/* Yield Cards */}
-            <Text style={styles.yieldHeader}>Yield Count</Text>
-            <View style={styles.yieldCardContainer}>
-                <View style={styles.yieldCard}>
-                    <Text style={styles.cardText}>Basil</Text>
-                    <Text style={styles.yieldCount}>{basilYield} yields</Text>
-                </View>
-
-                {/* Card 2 */}
-                <View style={styles.yieldCard}>
-                    <Text style={styles.cardText}>Parsley</Text>
-                    <Text style={styles.yieldCount}>{parsleyYield} yields</Text>
                 </View>
             </View>
         </View>
@@ -111,10 +129,15 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+    container: {
+        marginTop: 34,
+        flex: 1,
+        backgroundColor: '#3b4d36',
+        borderRadius: 4,
+    },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 34,
         marginLeft: 24,
     },
     logo: {
@@ -126,6 +149,10 @@ const styles = StyleSheet.create({
         fontSize: 22,
         fontWeight: 'bold',
         marginLeft: 60,
+        color: '#fff',
+        textShadowColor: 'rgba(0, 0, 0, 0.75)', // Shadow color
+        textShadowOffset: { width: 1, height: 1 }, // Shadow offset
+        textShadowRadius: 5, // Shadow radius
     },
     readingsCardContainer: {
         flexDirection: 'row',
@@ -134,65 +161,73 @@ const styles = StyleSheet.create({
         marginTop: 4,
         marginHorizontal: 24,
     },
-    yieldCardContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 20, // Adjust spacing from the bottom
-        marginHorizontal: 24,
-    },
-    liveFeedContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 20, // Adjust spacing from the bottom
-        marginHorizontal: 24,
-    },
     readingsCard: {
-        width: '48%', // To create two columns
+        width: '48%',
         height: '70%',
         backgroundColor: '#fff',
         borderRadius: 8,
         padding: 16,
         marginBottom: 16,
-        elevation: 2, // For shadow
-    },
-    yieldCard: {
-        width: '48%', // To create two columns
-        height: '80%',
-        backgroundColor: '#fff',
-        borderRadius: 8,
-        padding: 16,
-        marginBottom: 16,
-        elevation: 2, // For shadow
-    },
-    liveFeedCard: {
-        width: '100%', // To create two columns
-        height: '600%',
-        backgroundColor: '#fff',
-        borderRadius: 8,
-        padding: 8,
-        marginBottom: 16,
-        elevation: 2, // For shadow
+        elevation: 2,
     },
     cardText: {
         fontSize: 14,
         fontWeight: 'bold',
+        color: 'black',
+        textShadowColor: 'rgba(0, 0, 0, 0.25)', // Shadow color
+        textShadowOffset: { width: 1, height: 1 }, // Shadow offset
+        textShadowRadius: 2, // Shadow radius
     },
-    yieldHeader: {
+    cardValue: {
+        color: 'black',
+        textShadowColor: 'rgba(0, 0, 0, 0.15)', // Shadow color
+        textShadowOffset: { width: 1, height: 1 }, // Shadow offset
+        textShadowRadius: 5, // Shadow radius
+    },
+    ledControlContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 24,
+        marginTop: 116,
+    },
+    ledControlLabel: {
         fontSize: 18,
         fontWeight: 'bold',
-        marginLeft: 24,
-        marginTop: 160, // Adjust spacing from the top
-        marginBottom: 10,
+        color: '#fff',
+        textShadowColor: 'rgba(0, 0, 0, 0.15)', // Shadow color
+        textShadowOffset: { width: 1, height: 1 }, // Shadow offset
+        textShadowRadius: 5, // Shadow radius
     },
     liveFeedHeader: {
         fontSize: 18,
         fontWeight: 'bold',
         marginLeft: 24,
-        marginTop: 100, // Adjust spacing from the top
+        marginTop: 30,
         marginBottom: 10,
+        color: '#fff',
+        textShadowColor: 'rgba(0, 0, 0, 0.15)', // Shadow color
+        textShadowOffset: { width: 1, height: 1 }, // Shadow offset
+        textShadowRadius: 5, // Shadow radius
     },
-    liveFeedVideo: {
+    liveFeedContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 20,
+        marginHorizontal: 24,
+    },
+    liveFeedCard: {
         width: '100%',
-        height: 300, // Set the desired height for your video
+        height: '600%',
+        backgroundColor: '#fff',
+        borderRadius: 8,
+        padding: 8,
+        marginBottom: 16,
+        elevation: 2,
+    },
+    liveFeedImage: {
+        flex: 1,
+        width: '100%',
+        height: '100%',
     },
 });
+
